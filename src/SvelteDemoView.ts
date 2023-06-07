@@ -32,7 +32,6 @@ export class SvelteDemoView extends ItemView {
 			target: this.contentEl,
 			props: {
 				title: "KGAR WILL WRITE PLURGINS",
-				fileManager: this.plugin.app.fileManager,
 			},
 		});
 	}
