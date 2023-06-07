@@ -7,10 +7,11 @@ import {
 	Plugin,
 	PluginSettingTab,
 	Setting,
+	TFile,
 	WorkspaceLeaf,
 } from "obsidian";
 import { SvelteDemoView, VIEW_TYPE_EXAMPLE } from "src/SvelteDemoView";
-import { fileStore } from "src/stores";
+import { fileStore, type HelloWorldFileInfo } from "src/stores";
 
 // Remember to rename these classes and interfaces!
 
@@ -124,13 +125,70 @@ export default class MyPlugin extends Plugin {
 		this.writeVaultFilesToStore();
 
 		this.registerEvent(
-			this.app.vault.on("create", () => this.writeVaultFilesToStore())
+			this.app.vault.on("create", (file) => {
+				if (file instanceof TFile) {
+					fileStore.update((map) =>
+						map.set(file.path, {
+							file,
+							isKgar: determineIfKgarAsync(file),
+						})
+					);
+				}
+			})
 		);
 		this.registerEvent(
-			this.app.vault.on("rename", () => this.writeVaultFilesToStore())
+			this.app.vault.on("rename", async (file, oldPath) => {
+				if (file instanceof TFile) {
+					const isKgar = determineIfKgarAsync(file);
+					fileStore.update((map) => {
+						map.delete(oldPath);
+						map.set(file.path, { file, isKgar });
+						return map;
+					});
+				}
+			})
 		);
 		this.registerEvent(
-			this.app.vault.on("delete", () => this.writeVaultFilesToStore())
+			this.app.vault.on("delete", (file) => {
+				if (file instanceof TFile) {
+					fileStore.update((map) => {
+						map.delete(file.path);
+						return map;
+					});
+				}
+			})
+		);
+		this.registerEvent(
+			this.app.vault.on("modify", async (file) => {
+				if (file instanceof TFile) {
+					fileStore.update((map) => {
+						const fileInfo = map.get(file.path);
+						if (fileInfo) {
+							fileInfo.needsUpdate = true;
+						}
+						return map;
+					});
+				}
+			})
+		);
+
+		this.registerEvent(
+			app.metadataCache.on("resolved", () => {
+				fileStore.update((map) => {
+					for (const [key, value] of map.entries()) {
+						if (!value.needsUpdate) {
+							continue;
+						}
+
+						value.needsUpdate = false;
+						map.set(key, {
+							...value,
+							isKgar: determineIfKgarAsync(value.file),
+						});
+					}
+					return map;
+				});
+			})
 		);
 
 		this.addRibbonIcon("dice", "Print leaf types", () => {
@@ -156,9 +214,19 @@ export default class MyPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	writeVaultFilesToStore() {
-		const files = this.app.vault.getFiles();
-		fileStore.set(files);
+	async writeVaultFilesToStore() {
+		const map = new Map<string, HelloWorldFileInfo>();
+		for (const file of this.app.vault.getFiles()) {
+			console.log("processing file " + file.path);
+			const isKgar = determineIfKgarAsync(file);
+
+			map.set(file.path, {
+				file,
+				isKgar,
+			});
+		}
+
+		fileStore.set(map);
 	}
 }
 
@@ -207,4 +275,16 @@ class SampleSettingTab extends PluginSettingTab {
 					})
 			);
 	}
+}
+
+function determineIfKgarAsync(file: TFile): boolean {
+	const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
+	if (!frontmatter) {
+		return false;
+	}
+	const key = Object.keys(frontmatter).find(
+		(k) => k.toLocaleLowerCase() === "kgar"
+	);
+	const isKgar = !!key && frontmatter[key] == true;
+	return isKgar;
 }

@@ -1,29 +1,16 @@
 <script lang="ts">
-	import type { FileManager, TFile } from "obsidian";
+	import type { TFile } from "obsidian";
 	import { fileStore } from "./stores";
 
 	let counter = 2;
-    
 
 	export let title = "Svelte Demo View";
-    export let fileManager: FileManager;
 
 	function increment() {
 		counter++;
 	}
 
-	async function isKgar(file: TFile) {
-		let result = false;
-		try {
-			await fileManager.processFrontMatter(file, (frontmatter) => {
-				const key = Object.keys(frontmatter)?.find(
-					(k) => k.toLocaleLowerCase() === "kgar"
-				);
-				result = !!key && frontmatter[key] == true;
-			});
-		} catch (_) {}
-		return result;
-	}
+	$: fileStoreValues = Array.from($fileStore.values());
 </script>
 
 <h3>{title}</h3>
@@ -32,10 +19,10 @@
 <button on:click={increment}>Clicked {counter} times</button>
 
 <ul>
-	{#each $fileStore as file}
-		<li>
-			{file.name}
-			{#await isKgar(file) then kgar}{#if kgar}🌟{/if}{/await}
+	{#each fileStoreValues as fileInfo}
+		<li title={fileInfo.file.path}>
+			{fileInfo.file.name}
+			{#if fileInfo.isKgar}🌟{/if}
 		</li>
 	{/each}
 </ul>
