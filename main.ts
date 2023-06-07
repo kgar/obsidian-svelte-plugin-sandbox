@@ -262,7 +262,6 @@ export default class MyPlugin extends Plugin {
 	}
 
 	async onunload() {
-		this.app.workspace.detachLeavesOfType(VIEW_TYPE_EXAMPLE);
 		await this.saveData({
 			lastClosed: new Date(),
 		});
