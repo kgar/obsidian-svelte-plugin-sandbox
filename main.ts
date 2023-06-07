@@ -13,7 +13,7 @@ import {
 } from "obsidian";
 import { SvelteDemoView, VIEW_TYPE_EXAMPLE } from "src/SvelteDemoView";
 import { fileStore, type HelloWorldFileInfo } from "src/stores";
-import { kgarQuoteInlineEnhancerPlugin } from './src/KgarQuoteLivePreview';
+import { kgarQuoteInlineEnhancerPlugin } from "./src/KgarQuoteLivePreview";
 
 interface MyPluginSettings {
 	mySetting: string;
@@ -232,9 +232,33 @@ export default class MyPlugin extends Plugin {
 			});
 		});
 
+		this.registerEvent(
+			this.app.workspace.on("file-menu", (menu, file) => {
+				menu.addItem((item) => {
+					item.setTitle("Print file path 👈")
+						.setIcon("document")
+						.onClick(async () => {
+							new Notice(file.path);
+						});
+				});
+			})
+		);
+
+		this.registerEvent(
+			this.app.workspace.on("editor-menu", (menu, editor, view) => {
+				menu.addItem((item) => {
+					item.setTitle("Print file path 👈")
+						.setIcon("document")
+						.onClick(async () => {
+							new Notice(view.file?.path ?? "Unknown");
+						});
+				});
+			})
+		);
+
 		this.registerMarkdownPostProcessor(processKgarBlockquotes);
 
-        this.registerEditorExtension([kgarQuoteInlineEnhancerPlugin(this)]);
+		this.registerEditorExtension([kgarQuoteInlineEnhancerPlugin(this)]);
 	}
 
 	async onunload() {
@@ -333,7 +357,8 @@ function processKgarBlockquotes(
 					const text = firstLineTextNode.textContent;
 					if (text?.trim().toLocaleLowerCase() === "$kgar") {
 						const newNode = document.createElement("span");
-						newNode.innerHTML = `<strong>kgar 🌟</strong>`;
+						const strong = newNode.createEl("strong");
+						strong.textContent = "kgar 🌟";
 						firstLineTextNode.replaceWith(newNode);
 					}
 				}

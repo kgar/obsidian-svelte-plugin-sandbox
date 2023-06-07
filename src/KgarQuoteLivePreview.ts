@@ -126,7 +126,10 @@ function renderKgarQuoteEnhancer(view: EditorView) {
 					return;
 				}
 
-				const widget = new KgarQuoteEnhancerInlineWidget(original, view);
+				const widget = new KgarQuoteEnhancerInlineWidget(
+					original,
+					view
+				);
 
 				widgets.push(
 					Decoration.replace({
@@ -158,9 +161,9 @@ export class KgarQuoteEnhancerInlineWidget extends WidgetType {
 	// Add CSS classes and return HTML element.
 	// In "complex" cases it will get filled with the correct text/child elements later.
 	toDOM(view: EditorView): HTMLElement {
-		const text = document.createElement("span");
-		text.innerHTML = "<strong>kgar 🌟</strong>";
-		return text;
+		const span = document.createElement("span");
+		span.createEl("strong", { text: "kgar 🌟" });
+		return span;
 	}
 
 	/* Make queries only editable when shift is pressed (or navigated inside with the keyboard
@@ -205,7 +208,8 @@ export function kgarQuoteInlineEnhancerPlugin(plugin: MyPlugin) {
 		class {
 			decorations: CodeMirrorView.DecorationSet;
 			constructor(view: EditorView) {
-				this.decorations = renderKgarQuoteEnhancer(view) ?? Decoration.none;
+				this.decorations =
+					renderKgarQuoteEnhancer(view) ?? Decoration.none;
 			}
 
 			update(update: ViewUpdate) {
