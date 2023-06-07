@@ -9,6 +9,7 @@ import {
 	Setting,
 	TFile,
 	WorkspaceLeaf,
+	type MarkdownPostProcessorContext,
 } from "obsidian";
 import { SvelteDemoView, VIEW_TYPE_EXAMPLE } from "src/SvelteDemoView";
 import { fileStore, type HelloWorldFileInfo } from "src/stores";
@@ -196,10 +197,15 @@ export default class MyPlugin extends Plugin {
 				console.log(leaf.getViewState().type);
 			});
 		});
+
+		this.registerMarkdownPostProcessor(processKgarBlockquotes);
 	}
 
-	onunload() {
+	async onunload() {
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_EXAMPLE);
+		await this.saveData({
+			lastClosed: new Date(),
+		});
 	}
 
 	async loadSettings() {
@@ -217,7 +223,6 @@ export default class MyPlugin extends Plugin {
 	async writeVaultFilesToStore() {
 		const map = new Map<string, HelloWorldFileInfo>();
 		for (const file of this.app.vault.getFiles()) {
-			console.log("processing file " + file.path);
 			const isKgar = determineIfKgarAsync(file);
 
 			map.set(file.path, {
@@ -275,6 +280,46 @@ class SampleSettingTab extends PluginSettingTab {
 					})
 			);
 	}
+}
+
+function processKgarBlockquotes(
+	el: HTMLElement,
+	ctx: MarkdownPostProcessorContext
+) {
+	console.log(el);
+
+	function enhance(blockquote: HTMLQuoteElement) {
+		if (blockquote instanceof HTMLQuoteElement) {
+			const blockquoteFirstChild = blockquote.firstElementChild;
+			if (blockquoteFirstChild instanceof HTMLParagraphElement) {
+				const firstLineTextNode = blockquoteFirstChild.firstChild;
+				if (firstLineTextNode?.nodeType === Node.TEXT_NODE) {
+					const text = firstLineTextNode.textContent;
+					if (text?.trim().toLocaleLowerCase() === "$kgar") {
+						const newNode = document.createElement("span");
+						newNode.innerHTML = `<strong>kgar 🌟</strong>`;
+						firstLineTextNode.replaceWith(newNode);
+					}
+				}
+			}
+
+			Array.from(blockquote.children).forEach((bChild) => {
+				console.log("inspecting blockquote child...", bChild);
+				if (bChild instanceof HTMLQuoteElement) {
+					console.log("enhancing", bChild);
+					enhance(bChild);
+				}
+			});
+		}
+	}
+
+	Array.from(el.children).forEach((bChild) => {
+		console.log("inspecting child...", bChild);
+		if (bChild instanceof HTMLQuoteElement) {
+			console.log("enhancing", bChild);
+			enhance(bChild);
+		}
+	});
 }
 
 function determineIfKgarAsync(file: TFile): boolean {
