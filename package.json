@@ -24,6 +24,8 @@
 		"svelte": "^3.59.1",
 		"svelte-preprocess": "^5.0.4",
 		"tslib": "2.4.0",
-		"typescript": "^5.1.3"
-	}
+		"typescript": "^5.1.3",
+		"@codemirror/language": "https://github.com/lishid/cm-language"
+	},
+	"dependencies": {}
 }

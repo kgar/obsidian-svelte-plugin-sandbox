@@ -13,8 +13,7 @@ import {
 } from "obsidian";
 import { SvelteDemoView, VIEW_TYPE_EXAMPLE } from "src/SvelteDemoView";
 import { fileStore, type HelloWorldFileInfo } from "src/stores";
-
-// Remember to rename these classes and interfaces!
+import { kgarQuoteInlineEnhancerPlugin } from './src/KgarQuoteLivePreview';
 
 interface MyPluginSettings {
 	mySetting: string;
@@ -58,10 +57,45 @@ export default class MyPlugin extends Plugin {
 			(leaf: WorkspaceLeaf) => new SvelteDemoView(leaf, this)
 		);
 
-		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
-			id: "open-svelte-demo-view",
-			name: "Open svelte demo view",
+			id: "open-svelte-demo-view-left",
+			name: "Open svelte demo view left",
+			callback: async () => {
+				const leaf = this.app.workspace.getLeftLeaf(false);
+				await leaf.setViewState({
+					type: VIEW_TYPE_EXAMPLE,
+				});
+				if (leaf) this.app.workspace.revealLeaf(leaf);
+			},
+		});
+
+		this.addCommand({
+			id: "open-svelte-demo-view-root",
+			name: "Open svelte demo view root",
+			callback: async () => {
+				const leaf = this.app.workspace.getLeaf(true);
+				await leaf.setViewState({
+					type: VIEW_TYPE_EXAMPLE,
+				});
+				if (leaf) this.app.workspace.revealLeaf(leaf);
+			},
+		});
+
+		this.addCommand({
+			id: "open-svelte-demo-view-root-split",
+			name: "Open svelte demo view root and split",
+			callback: async () => {
+				const leaf = this.app.workspace.getLeaf("split", "vertical");
+				await leaf.setViewState({
+					type: VIEW_TYPE_EXAMPLE,
+				});
+				if (leaf) this.app.workspace.revealLeaf(leaf);
+			},
+		});
+
+		this.addCommand({
+			id: "open-svelte-demo-view-right",
+			name: "Open svelte demo view right",
 			callback: async () => {
 				const leaf = this.app.workspace.getRightLeaf(false);
 				await leaf.setViewState({
@@ -199,6 +233,8 @@ export default class MyPlugin extends Plugin {
 		});
 
 		this.registerMarkdownPostProcessor(processKgarBlockquotes);
+
+        this.registerEditorExtension([kgarQuoteInlineEnhancerPlugin(this)]);
 	}
 
 	async onunload() {
